@@ -16,16 +16,24 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #222; /* optional: darker bg for contrast */
+        background-color: #222; /* darker bg for contrast */
       }
 
       canvas {
         display: block;
-        border: 2px solid #ccc; /* optional: visible border */
+        border: 2px solid #ccc; /* visible border */
       }
     </style>
   </head>
   <body>
+    <!-- Load scripts in correct dependency order -->
+    <script src="preload.js"></script>
+    <script src="game-state.js"></script>
+    <script src="wall.js"></script>
+    <script src="tank.js"></script>
+    <script src="projectile.js"></script>
+    <script src="functions.js"></script>
+    <script src="power-up.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
