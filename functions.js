@@ -1,3 +1,49 @@
+let lastFillColor = null;
+let lastStrokeColor = null;
+let lastPowerUpFill = null;
+
+let fillEnabled = true;
+let strokeEnabled = true;
+
+function optimizedNoFill() {
+  if (fillEnabled) {
+    noFill();
+    fillEnabled = false;
+    lastFillColor = null;
+  }
+}
+
+function optimizedNoStroke() {
+  if (strokeEnabled) {
+    noStroke();
+    strokeEnabled = false;
+    lastStrokeColor = null;
+  }
+}
+function optimizedPowerUpFill(r, g, b, a = 255) {
+  const key = `${r},${g},${b},${a}`;
+  if (lastPowerUpFill !== key) {
+    powerUpBuffer.fill(r, g, b, a);
+    lastPowerUpFill = key;
+  }
+}
+
+function optimizedFill(r, g, b, a = 255) {
+  const key = `${r},${g},${b},${a}`;
+  if (lastFillColor !== key) {
+    fill(r, g, b, a);
+    lastFillColor = key;
+  }
+}
+
+function optimizedStroke(r, g, b, a = 255) {
+  const key = `${r},${g},${b},${a}`;
+  if (lastStrokeColor !== key) {
+    stroke(r, g, b, a);
+    lastStrokeColor = key;
+  }
+}
+
 function getWalls() {
   const size = 50;
   const columns = 24;
@@ -266,22 +312,38 @@ function handleRoundEnd() {
   }
 }
 
+let cachedFPS = "60.0";
+let cachedLeaderboard = "";
+let lastFPSUpdate = 0;
+let lastScoreSnapshot = "";
+
 function drawFPS() {
-  fill(255);
+  if (frameCount % 10 === 0) {
+    cachedFPS = nf(frameRate(), 2, 1);
+  }
+  optimizedFill(255);
   textSize(14);
-  text("FPS: " + nf(frameRate(), 2, 1), 100, height - 20);
+  textAlign(LEFT, BOTTOM);
+  text("FPS: " + cachedFPS, 10, height - 10);
 }
 
 function drawLeaderboard() {
-  fill(255);
+  const scoreSnapshot = scores.join("|");
+  if (scoreSnapshot !== lastScoreSnapshot) {
+    cachedLeaderboard = "";
+    for (let i = 0; i < scores.length; i++) {
+      const label =
+        (i === 0 ? "WASD" : i === 1 ? "ARROWS" : "MOUSE") + ": " + scores[i];
+      cachedLeaderboard += label + "\n";
+    }
+    lastScoreSnapshot = scoreSnapshot;
+  }
+  optimizedFill(255);
   textSize(16);
   textAlign(RIGHT, TOP);
-  for (let i = 0; i < scores.length; i++) {
-    let label =
-      (i === 0 ? "WASD" : i === 1 ? "ARROWS" : "MOUSE") + ": " + scores[i];
-    text(label, width - 10, 10 + i * 20);
-  }
+  text(cachedLeaderboard, width - 10, 10);
 }
+
 function spawnPowerUps() {
   powerUps = [];
 
@@ -320,29 +382,103 @@ function spawnPowerUps() {
   }
 }
 function drawPowerUps() {
-  push(); // Save drawing state
-  rectMode(CENTER);
+  image(powerUpBuffer, 0, 0);
+}
+function redrawPowerUps() {
+  powerUpBuffer.clear();
+  powerUpBuffer.rectMode(CENTER);
+  powerUpBuffer.textAlign(CENTER, CENTER);
+  powerUpBuffer.textSize(8);
+
   for (let p of powerUps) {
-    text_ = "";
+    let text_ = "";
     switch (p.type) {
       case "speed":
-        fill(0, 255, 0);
+        powerUpBuffer.fill(0, 255, 0);
         text_ = "ZOOM";
         break;
       case "shield":
-        fill(0, 200, 255);
+        powerUpBuffer.fill(0, 200, 255);
         text_ = "SHIELD";
         break;
       case "rapidFire":
-        fill(255, 180, 0);
+        powerUpBuffer.fill(255, 180, 0);
         text_ = "RAPID";
         break;
+      default:
+        powerUpBuffer.fill(150); // fallback gray
+        text_ = "?";
+        console.warn("Unknown powerUp type:", p.type);
     }
-    rect(p.x, p.y, p.w, p.h);
-    fill(0);
-    textAlign(CENTER, CENTER);
-    textSize(8);
-    text(text_, p.x, p.y);
+
+    powerUpBuffer.rect(p.x, p.y, p.w, p.h);
+    powerUpBuffer.fill(0);
+    powerUpBuffer.text(text_, p.x, p.y);
   }
-  pop();
+}
+
+function setupHUD() {
+  hudBuffer = createGraphics(width, height);
+  hudBuffer.textSize(16);
+  hudBuffer.textAlign(RIGHT, TOP);
+  hudBuffer.fill(255);
+  hudBuffer.noStroke();
+}
+
+function updateHUD() {
+  // Only redraw HUD text every 10 frames
+  if (frameCount % 10 !== 0) return;
+
+  hudBuffer.clear();
+  hudBuffer.textAlign(RIGHT, TOP);
+
+  // Leaderboard
+  const scoreSnapshot = scores.join("|");
+  if (scoreSnapshot !== lastScoreSnapshot) {
+    cachedLeaderboard = "";
+    for (let i = 0; i < scores.length; i++) {
+      const label =
+        (i === 0 ? "WASD" : i === 1 ? "ARROWS" : "MOUSE") + ": " + scores[i];
+      cachedLeaderboard += label + "\n";
+    }
+    lastScoreSnapshot = scoreSnapshot;
+  }
+  hudBuffer.text(cachedLeaderboard, width - 10, 10);
+
+  // FPS
+  cachedFPS = nf(frameRate(), 2, 1);
+  hudBuffer.textAlign(LEFT, BOTTOM);
+  hudBuffer.text("FPS: " + cachedFPS, 10, height - 10);
+}
+
+function drawHUD() {
+  imageMode(CORNER);
+  image(hudBuffer, 0, 0);
+}
+
+// Optimized helper to replace p5.Vector + rotate
+function getRotatedOffsetAt(posX, posY, offsetX, offsetY, angle) {
+  let cosA = Math.cos(angle - HALF_PI);
+  let sinA = Math.sin(angle - HALF_PI);
+  return {
+    x: posX + offsetX * cosA - offsetY * sinA,
+    y: posY + offsetX * sinA + offsetY * cosA,
+  };
+}
+function checkPowerUpPickups() {
+  for (let t of tanks) {
+    if (t.isExploding || t.health <= 0) continue;
+
+    let hitbox = t.getHitboxCenter();
+    for (let i = powerUps.length - 1; i >= 0; i--) {
+      let p = powerUps[i];
+      let dx = hitbox.x - p.x;
+      let dy = hitbox.y - p.y;
+      if (dx * dx + dy * dy < (t.hitboxRadius + powerUpSize / 2) ** 2) {
+        t.addPowerUp(new PowerUp(p.type));
+        powerUps.splice(i, 1);
+        redrawPowerUps();
+      }
+    }
+  }
 }

@@ -7,8 +7,16 @@ class Wall {
   }
 
   draw() {
-    fill(60);
-    stroke(100);
+    if (
+      this.x + this.w < 0 ||
+      this.x > width ||
+      this.y + this.h < 0 ||
+      this.y > height
+    ) {
+      return;
+    }
+    optimizedFill(60);
+    optimizedStroke(100);
     rect(this.x, this.y, this.w, this.h);
   }
 

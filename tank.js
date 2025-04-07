@@ -36,14 +36,19 @@ class Tank {
     this.shouldRemove = false;
 
     this.playerIndex = -1;
+
+    this.lastAngle = null;
+    this.cachedTankImage = null;
   }
 
   getHitboxCenterAt(posX, posY, angle) {
-    let offset = createVector(this.hitboxOffsetX, this.hitboxOffsetY);
-    offset.rotate(angle - HALF_PI);
+    let offsetX = this.hitboxOffsetX;
+    let offsetY = this.hitboxOffsetY;
+    let cosA = Math.cos(angle - HALF_PI);
+    let sinA = Math.sin(angle - HALF_PI);
     return {
-      x: posX + offset.x,
-      y: posY + offset.y,
+      x: posX + offsetX * cosA - offsetY * sinA,
+      y: posY + offsetX * sinA + offsetY * cosA,
     };
   }
 
@@ -84,7 +89,7 @@ class Tank {
         p.removeEffect(this);
         this.powerUps.splice(i, 1);
       } else {
-        p.applyEffect(this); // Optional: could skip re-applying every frame if effect is persistent
+        p.applyEffect(this);
       }
     }
 
@@ -235,19 +240,17 @@ class Tank {
 
     this.x = constrainedX;
     this.y = constrainedY;
-
-    for (let i = powerUps.length - 1; i >= 0; i--) {
-      let p = powerUps[i];
-      let hitbox = this.getHitboxCenter();
-      let distSq = (hitbox.x - p.x) ** 2 + (hitbox.y - p.y) ** 2;
-      if (distSq < (this.hitboxRadius + powerUpSize / 2) ** 2) {
-        this.addPowerUp(new PowerUp(p.type));
-        powerUps.splice(i, 1);
-      }
-    }
   }
 
   draw() {
+    if (
+      this.x + this.spriteWidth < 0 ||
+      this.x - this.spriteWidth > width ||
+      this.y + this.spriteHeight < 0 ||
+      this.y - this.spriteHeight > height
+    )
+      return;
+
     push();
     translate(this.x, this.y);
 
@@ -267,47 +270,59 @@ class Tank {
       return;
     }
 
-    rotate(this.angle);
-    imageMode(CENTER);
-
-    let imgToDraw = this.customImage;
-    if (!imgToDraw && tankSpriteSheet) {
-      let spriteSheetWidthPerTank = 40;
-      let spriteSheetHeight = 68;
-      let sx = this.spriteIndex * spriteSheetWidthPerTank;
-      let sy = 0;
-      image(
-        tankSpriteSheet,
-        0,
-        0,
-        this.spriteWidth,
+    // Only regenerate cached image when angle or spriteIndex changes
+    if (this.cachedTankImage === null || this.lastAngle !== this.angle) {
+      this.cachedTankImage = createGraphics(
         this.spriteHeight,
-        sx,
-        sy,
-        spriteSheetWidthPerTank,
-        spriteSheetHeight
+        this.spriteHeight
       );
-    } else if (imgToDraw) {
-      image(imgToDraw, 0, 0, this.spriteWidth, this.spriteHeight);
-    } else {
-      fill(200, 50, 50);
-      noStroke();
-      rectMode(CENTER);
-      rect(0, 0, this.spriteWidth, this.spriteHeight);
-      stroke(255);
-      strokeWeight(2);
-      line(0, -5, 0, -this.spriteHeight * 0.4);
+      this.cachedTankImage.angleMode(RADIANS);
+      this.cachedTankImage.imageMode(CENTER);
+      this.cachedTankImage.translate(
+        this.spriteHeight / 2,
+        this.spriteHeight / 2
+      );
+      this.cachedTankImage.rotate(this.angle);
+
+      if (!this.customImage && tankSpriteSheet) {
+        let sx = this.spriteIndex * 40;
+        this.cachedTankImage.image(
+          tankSpriteSheet,
+          0,
+          0,
+          this.spriteWidth,
+          this.spriteHeight,
+          sx,
+          0,
+          40,
+          68
+        );
+      } else if (this.customImage) {
+        this.cachedTankImage.image(
+          this.customImage,
+          0,
+          0,
+          this.spriteWidth,
+          this.spriteHeight
+        );
+      }
+
+      this.lastAngle = this.angle;
     }
 
+    imageMode(CENTER);
+    image(this.cachedTankImage, 0, 0);
     pop();
 
     let hitboxPos = this.getHitboxCenter();
     push();
     noFill();
-    stroke(255, 255, 255, 40);
+    optimizedStroke(255, 255, 255, 40);
     strokeWeight(2);
-    if (this.shielded) fill(0, 120, 220, 100) && stroke(255, 255, 255);
+    if (this.shielded)
+      optimizedFill(0, 120, 220, 100) && optimizedStroke(255, 255, 255);
     circle(hitboxPos.x, hitboxPos.y, this.hitboxRadius * 2);
+
     pop();
   }
 

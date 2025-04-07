@@ -58,8 +58,8 @@ class Projectile {
   }
 
   draw() {
-    fill(255, 200, 0, this.alpha);
-    noStroke();
+    optimizedFill(255, 200, 0, this.alpha);
+    optimizedNoStroke();
     circle(this.x, this.y, this.radius * 2);
   }
 

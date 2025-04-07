@@ -1,8 +1,11 @@
 let playerSelecting = 0;
 let tankButtons = [];
+let powerUpBuffer;
 
 function setup() {
   createCanvas(1200, 800);
+  setupHUD();
+  powerUpBuffer = createGraphics(width, height);
   imageMode(CENTER);
   if (gamePhase === "menu") {
     createTankSelectionUI();
@@ -12,14 +15,20 @@ function setup() {
 function draw() {
   if (gamePhase !== "playing") return;
 
+  select("#menuContainer")?.remove();
+
   background(100);
-  drawWalls();
+  imageMode(CORNER);
+  image(wallBuffer, 0, 0);
+  imageMode(CENTER);
+
   updateTanks();
   updateProjectiles();
+  checkPowerUpPickups(); // <-- ADD THIS HERE
   checkCollisions();
   handleRoundEnd();
-  drawFPS();
-  drawLeaderboard();
+  updateHUD(); // for FPS and leaderboard
+  drawHUD();
   drawPowerUps();
 }
 
@@ -34,15 +43,33 @@ function mousePressed() {
 }
 
 function startGameWithSelections() {
+  // After starting game:
+  removeElements(); // p5.js built-in: nukes ALL p5 DOM elements
+
   gamePhase = "playing";
   wasdTankImage = playerSelections[0];
   arrowTankImage = playerSelections[1];
   mouseTankImage = playerSelections[2];
 
   walls = getWalls();
+  wallBuffer = createGraphics(width, height);
+  drawWallsOnce(); // draw once onto wallBuffer
+
   scores = [0, 0, 0];
   spawnTanks();
   spawnPowerUps();
+  redrawPowerUps();
+}
+
+function drawWallsOnce() {
+  wallBuffer.push();
+  wallBuffer.clear();
+  wallBuffer.noStroke();
+  wallBuffer.fill(60);
+  for (let wall of walls) {
+    wallBuffer.rect(wall.x, wall.y, wall.w, wall.h);
+  }
+  wallBuffer.pop();
 }
 
 function createTankSelectionUI() {
