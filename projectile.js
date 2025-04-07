@@ -14,36 +14,37 @@ class Projectile {
   }
 
   update() {
-    this.x += this.dx;
-    this.y += this.dy;
+    // Predict next position
+    let nextX = this.x + this.dx;
+    let nextY = this.y + this.dy;
 
-    if (this.x - this.radius <= 0 || this.x + this.radius >= width) {
+    // Bounce off screen edges
+    if (nextX - this.radius <= 0 || nextX + this.radius >= width) {
       this.dx *= -1;
-      this.x = constrain(this.x, this.radius, width - this.radius);
+      nextX = constrain(nextX, this.radius, width - this.radius);
     }
-    if (this.y - this.radius <= 0 || this.y + this.radius >= height) {
+    if (nextY - this.radius <= 0 || nextY + this.radius >= height) {
       this.dy *= -1;
-      this.y = constrain(this.y, this.radius, height - this.radius);
+      nextY = constrain(nextY, this.radius, height - this.radius);
     }
 
-    let predictedX = this.x + this.dx;
-    let predictedY = this.y + this.dy;
-    let bounced = false;
-
+    // Bounce off walls
     for (let wall of walls) {
-      if (!bounced && wall.collidesWith(predictedX, this.y, this.radius)) {
+      if (wall.collidesWith(nextX, this.y, this.radius)) {
         this.dx *= -1;
-        predictedX = this.x + this.dx;
-        bounced = true;
+        this.dx += random(-0.3, 0.3);
+        nextX = this.x + this.dx;
       }
-      if (wall.collidesWith(this.x, predictedY, this.radius)) {
+      if (wall.collidesWith(this.x, nextY, this.radius)) {
         this.dy *= -1;
-        predictedY = this.y + this.dy;
+        this.dy += random(-0.3, 0.3);
+        nextY = this.y + this.dy;
       }
     }
 
-    this.x += this.dx;
-    this.y += this.dy;
+    // Apply new position
+    this.x = nextX;
+    this.y = nextY;
 
     this.age = millis() - this.birthTime;
     this.alpha = map(
