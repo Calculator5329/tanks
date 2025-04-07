@@ -41,11 +41,62 @@ function getWalls() {
   const startY = (Math.floor(Math.random() * (rows / 2)) * 2) | 1;
   carveMaze(startX, startY);
 
-  const randomOpenings = 260;
-  for (let i = 0; i < randomOpenings; i++) {
-    const rx = Math.floor(Math.random() * columns);
-    const ry = Math.floor(Math.random() * rows);
-    coords[index(rx, ry)] = 0;
+  const extraCorridors = 360;
+  for (let i = 0; i < extraCorridors; i++) {
+    // Pick a random already open cell
+    let tries = 0;
+    let cx, cy;
+    do {
+      cx = Math.floor(Math.random() * columns);
+      cy = Math.floor(Math.random() * rows);
+      tries++;
+    } while (coords[index(cx, cy)] !== 0 && tries < 50);
+
+    if (tries >= 50) continue;
+
+    // Extend from it in a random direction
+    const [dx, dy] = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ][Math.floor(Math.random() * 4)];
+
+    const nx = cx + dx;
+    const ny = cy + dy;
+
+    if (isInBounds(nx, ny)) {
+      coords[index(nx, ny)] = 0;
+    }
+  }
+
+  const extraWalls = 25;
+  for (let i = 0; i < extraWalls; i++) {
+    // Pick a random open cell
+    let tries = 0;
+    let cx, cy;
+    do {
+      cx = Math.floor(Math.random() * columns);
+      cy = Math.floor(Math.random() * rows);
+      tries++;
+    } while (coords[index(cx, cy)] !== 0 && tries < 50);
+
+    if (tries >= 50) continue;
+
+    // Pick a direction and place a wall next to it
+    const [dx, dy] = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ][Math.floor(Math.random() * 4)];
+
+    const nx = cx + dx;
+    const ny = cy + dy;
+
+    if (isInBounds(nx, ny)) {
+      coords[index(nx, ny)] = 1;
+    }
   }
 
   let walls = [];
@@ -58,6 +109,8 @@ function getWalls() {
       }
     }
   }
+
+  console.log(walls.length);
 
   return walls;
 }
@@ -107,6 +160,7 @@ function spawnTanks() {
         if (i === 0) wasdTank = tank;
         if (i === 1) arrowTank = tank;
         if (i === 2) mouseTank = tank;
+        if ((tank = mouseTank)) tank.speed = 1.5;
         break;
       }
       tries++;

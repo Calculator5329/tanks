@@ -25,7 +25,7 @@ function draw() {
 
 function keyPressed() {
   if (key === " " && wasdTank && !wasdTank.isExploding) wasdTank.shoot();
-  if (keyCode === SHIFT && arrowTank && !arrowTank.isExploding)
+  if (keyCode === ENTER && arrowTank && !arrowTank.isExploding)
     arrowTank.shoot();
 }
 
@@ -62,7 +62,29 @@ function createTankSelectionUI() {
   menuContainer.style("border-radius", "10px");
   menuContainer.style("z-index", "10");
 
+  const instructions = createP(`
+    <strong>Controls:</strong><br><br>
+    <u>Player 1 (WASD):</u>
+    Move with W/A/S/D
+    and shoot with Spacebar.<br><br>
+  
+    <u>Player 2 (Arrows):</u>
+    Move with Arrow Keys
+    and shoot with Enter.<br><br>
+  
+    <u>Player 3 (Mouse):</u>
+    Move the mouse to aim
+    Click to shoot.<br><br>
+  
+    Pick your tank to start!
+  `);
+  instructions.style("color", "#fff");
+  instructions.style("margin-bottom", "20px");
+  instructions.style("text-align", "center");
+  instructions.parent(menuContainer);
+
   const info = createP("Player 1: Pick Your Tank");
+
   info.id("selectionText");
   info.style("color", "#fff");
   info.parent(menuContainer);

@@ -23,7 +23,7 @@ class Tank {
 
     this.hitboxOffsetX = -8;
     this.hitboxOffsetY = 0;
-    this.hitboxRadius = 18;
+    this.hitboxRadius = 15;
 
     this.speed = 2 * this.speedMultiplier;
     this.rotationSpeed = 0.05;
