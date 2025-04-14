@@ -4,6 +4,7 @@ let powerUpBuffer;
 
 function setup() {
   createCanvas(1200, 800);
+
   setupHUD();
   powerUpBuffer = createGraphics(width, height);
   imageMode(CENTER);

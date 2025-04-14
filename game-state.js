@@ -20,6 +20,9 @@ function resetGame() {
   wallGrid.clear();
   for (let wall of walls) wallGrid.insert(wall);
 
+  wallBuffer.clear(); // Clear the old visuals
+  drawWallsOnce(); // Redraw the new walls
+
   projectiles = [];
   spawnTanks();
   spawnPowerUps();
